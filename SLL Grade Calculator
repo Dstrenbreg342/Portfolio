@@ -1,0 +1,197 @@
+
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+
+struct Node {
+    char *id;
+    int grade;
+    struct Node *next;
+};
+
+struct List {
+    struct Node *head;
+   
+};
+
+struct List SLL_new() {
+    struct List list;
+    list.head = NULL;
+    return list;
+}
+
+int SLL_length(struct List *list) {
+    struct Node *p;
+    int n = 0;
+    for (p = list->head; p != NULL; p = p->next) {
+        ++n;
+    }
+    return n;
+}
+
+int SLL_empty(struct List *list) {
+    return list->head == NULL;
+}
+
+void SLL_pop(struct List *list, char *sid, int *grd){
+  if(grd == NULL && sid != NULL){
+    struct Node *node = list->head;
+    list->head = node->next;
+    free(sid);
+    free(node);
+    }
+}
+
+void SLL_clear(struct List *list) {
+    int *val;
+    while (!SLL_empty(list)) {
+      val = &(list->head->grade);
+     SLL_pop(list, list->head->id, val);
+    }
+}
+
+void printList(struct List *list){
+    struct Node *p;
+    for (p = list->head; p != NULL; p = p->next) {
+        printf("%s: %d \n", p->id, p->grade);
+    }
+}
+
+void SLL_push(struct List *list, char *sid, int grd) {
+    struct Node *node = malloc(sizeof(struct Node));
+    node->id = malloc(strlen(sid)+1);
+    strcpy(node->id, sid);
+    node->grade = grd;
+    node->next = list->head;
+    list->head = node;
+}
+
+void SLL_insert(struct List *list, char *sid, int grd) {
+    
+    struct Node *node = malloc(sizeof(struct Node));
+    struct Node *p; 
+    p = list->head;
+    node->id = malloc(strlen(sid)+1);
+    strcpy(node->id, sid);
+    node->grade = grd;
+    if(SLL_empty(list)){
+      SLL_push(list, sid,grd);
+      free(node->id);
+      free(node);
+    }else if(p->next == NULL && strcmp(sid,p->id)>0){
+        p->next = node;
+    }else if(strcmp(sid,p->id)<=0){
+        SLL_push(list, sid,grd);
+        free(node->id);
+        free(node);
+    }else{
+      while(p->next != NULL){
+         if(strcmp(sid,p->id)>0){
+           if (strcmp(sid, p->next->id)<=0){ /*in between*/
+             break;
+           }
+           p = p->next;
+          }
+          else{
+         /* printf("In ELSE\n");*/
+            /*node->next = p->next;
+            p->next = node;*/
+            break;
+          }    
+        }
+      node->next = p->next;
+      p->next = node;
+    }  
+}
+
+
+int main(int argc, char **argv){
+  struct List l = SLL_new();
+  int i, count;
+  float avg;
+  int gArr[3];
+  FILE* fp;
+  if (argc < 1) return EXIT_FAILURE;
+  for(i=1;i<4;i++){
+    fp = fopen(argv[i], "r");
+    if (!fp) printf("Can't open file\n");
+        else {
+            char *sid;
+            char buffer[1024];
+            int row = 0;
+            int column = 0;
+
+            while (fgets(buffer, 1024, fp)) {
+                char *value;
+                int grade;
+                column = 0;
+                row++;
+                
+                value = strtok(buffer, ", ");
+                 sid = malloc(strlen(value)+1);
+                while (value) {
+                    if (column == 0) {
+                        strcpy(sid, value);
+                    }
+                    if (column == 1) {
+                        if((int)value[0]-48 == 1 && (int)value[2]-48 == 0 ){
+                          grade = 100;
+                        }else if(((int)value[1]-48 <= 9 && (int)value[1]-48 >= 0) && !((int)value[2]-48 <= 9 && (int)value[2]-48 >= 0)){
+                          grade = ((int)value[0]-48)*10 + ((int)value[1]-48);
+                        }else{
+                          grade = (int)value[0]-48;
+                        }
+                    }
+                    value = strtok(NULL, ", ");
+                    column++;
+                }
+                SLL_insert(&l, sid, grade);
+                
+            }
+               free(sid);
+               fclose(fp);
+        }      
+  }
+  fp = fopen(argv[4], "w+");
+  count = 0;
+  while(l.head->next != NULL){
+    gArr[count]= l.head->grade;
+    count++;
+    if(strcmp(l.head->id, l.head->next->id) != 0){
+      avg = 0;
+      for(i=0;i<3;i++){
+        avg += gArr[i];
+      }
+      avg = avg/(float)3;
+      if(avg>(((int)avg)+0.5)){
+        avg += 0.5;
+        avg = (int)avg;
+      }
+      fprintf(fp,"%s,%d\n",l.head->id,(int)avg);
+      for(i=0;i<3;i++){
+        gArr[i] = 0;
+      }
+      count = 0;
+    }
+    SLL_pop(&l,l.head->id,NULL);
+  }
+  gArr[count]= l.head->grade;
+  avg = 0;
+  for(i=0;i<3;i++){
+    avg += gArr[i];
+  }
+  avg = avg/(float)3;
+  if(avg>(((int)avg)+0.5)){
+    avg += 0.5;
+    avg = (int)avg;
+  }
+  fprintf(fp,"%s,%d\n",l.head->id,(int)avg);
+  for(i=0;i<3;i++){
+    gArr[i] = 0;
+  }
+  count = 0;
+  SLL_pop(&l,l.head->id,NULL);
+  
+  return 0;
+ }
+
